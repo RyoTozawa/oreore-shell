@@ -34,66 +34,67 @@ func main() {
 			attr := syscall.ProcAttr{Files: []uintptr{0, 1, 2}}
 			cpath, err := exec.LookPath(args1[0])
 			if err != nil {
-				log.Fatalf("%s not found in $PATH.“, os.Args1[0]")
-			}
-			pid, err := syscall.ForkExec(cpath, args1, &attr)
-			if err != nil {
-				panic(err)
-			}
-			proc, err := os.FindProcess(pid)
-			status, err := proc.Wait()
-			if err != nil {
-				panic(err)
-			}
-			if !status.Success() {
-				fmt.Println(status.String())
-				cpath, err := exec.LookPath(args3[0])
-				if err != nil {
-					log.Fatalf("%s not found in $PATH.“, os.Args3[0]")
-				}
-				pid, err := syscall.ForkExec(cpath, args3, &attr)
-				proc, err := os.FindProcess(pid)
-				status, err := proc.Wait()
-				if err != nil {
-					panic(err)
-				}
-				if !status.Success() {
-					fmt.Println(status.String())
-				}
+				log.Println(err)
 			} else {
-				cpath, err := exec.LookPath(args2[0])
+				pid, err := syscall.ForkExec(cpath, args1, &attr)
 				if err != nil {
-					log.Fatalf("%s not found in $PATH.“, os.Args2[0]")
+					log.Println(err)
 				}
-				pid, err := syscall.ForkExec(cpath, args2, &attr)
 				proc, err := os.FindProcess(pid)
 				status, err := proc.Wait()
 				if err != nil {
-					panic(err)
+					log.Println(err)
 				}
 				if !status.Success() {
 					fmt.Println(status.String())
+					cpath, err := exec.LookPath(args3[0])
+					if err != nil {
+						log.Println(err)
+					}
+					pid, err := syscall.ForkExec(cpath, args3, &attr)
+					proc, err := os.FindProcess(pid)
+					status, err := proc.Wait()
+					if err != nil {
+						log.Println(err)
+					}
+					if !status.Success() {
+						fmt.Println(status.String())
+					}
+				} else {
+					cpath, err := exec.LookPath(args2[0])
+					if err != nil {
+						log.Println(err)
+					}
+					pid, err := syscall.ForkExec(cpath, args2, &attr)
+					proc, err := os.FindProcess(pid)
+					status, err := proc.Wait()
+					if err != nil {
+						log.Println(err)
+					}
+					if !status.Success() {
+						fmt.Println(status.String())
+					}
 				}
 			}
-
 		} else {
 			args := arr[0:]
 			attr := syscall.ProcAttr{Files: []uintptr{0, 1, 2}}
 			cpath, err := exec.LookPath(args[0])
 			if err != nil {
-				log.Fatalf("%s not found in $PATH.“, os.Args[1]")
-			}
-			pid, err := syscall.ForkExec(cpath, args, &attr)
-			if err != nil {
-				panic(err)
-			}
-			proc, err := os.FindProcess(pid)
-			status, err := proc.Wait()
-			if err != nil {
-				panic(err)
-			}
-			if !status.Success() {
-				fmt.Println(status.String())
+				log.Println(err)
+			} else {
+				pid, err := syscall.ForkExec(cpath, args, &attr)
+				if err != nil {
+					log.Println(err)
+				}
+				proc, err := os.FindProcess(pid)
+				status, err := proc.Wait()
+				if err != nil {
+					log.Println(err)
+				}
+				if !status.Success() {
+					fmt.Println(status.String())
+				}
 			}
 		}
 		count++
