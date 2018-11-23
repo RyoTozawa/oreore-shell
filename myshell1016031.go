@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -10,7 +11,9 @@ import (
 	"syscall"
 )
 
-const flag = "?"
+const ternaryFlag = "?"
+const redirectFlag = ">"
+const redirectOppFlag = "<"
 const bit = ":"
 
 func main() {
@@ -26,9 +29,9 @@ func main() {
 			os.Exit(0)
 		}
 		// 区切り文字あるか確認
-		if checkFlag(arr) {
+		if checkFlag(arr, ternaryFlag) {
 			// ?より手前の切り出し
-			s, flagPoint := searchFlag(arr)
+			s, flagPoint := searchFlag(arr, ternaryFlag)
 			// ?より後の切り分け
 			s2, bitPoint := searchBit(arr, flagPoint)
 			args1 := s
@@ -48,6 +51,52 @@ func main() {
 				// Successした時
 			} else {
 				_, err := doCommand(args2[0], args2)
+				if err != nil {
+					log.Println(err)
+				}
+			}
+			// > のリダイレクトがあった場合
+		} else if checkFlag(arr, redirectFlag) {
+			args1, args2 := splitFlag(arr, redirectFlag)
+			args1Option := connectOption(args1[1:])
+			// 標準入力の取得
+			out, err := exec.Command(args1[0], args1Option).Output()
+			if err != nil {
+				log.Println(err)
+			}
+			// 書き込みできるようファイルを用意
+			fw, err := os.OpenFile(args2[0], os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+			if err != nil {
+				log.Println(err)
+			}
+			defer fw.Close()
+			// 書き込み
+			fmt.Fprintln(fw, string(out))
+		} else if checkFlag(arr, redirectOppFlag) {
+			s, flagPoint := searchFlag(arr, redirectOppFlag)
+			args1 := s
+			args2 := args1[flagPoint+1:]
+			b, err := ioutil.ReadFile(args2[0])
+			if err != nil {
+				log.Println(err)
+			}
+			status := string(b)
+			result, status, err := doCommandForRedirect(args1[0], args1)
+			if err != nil {
+				log.Println(err)
+			}
+			// 書き込みできるようファイルを用意
+			if result {
+				fw, err := os.OpenFile(args2[0], os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+				if err != nil {
+					log.Println(err)
+				}
+				defer func() {
+					if err := fw.Close(); err != nil {
+						log.Println(err)
+					}
+				}()
+				_, err = fw.WriteString(status)
 				if err != nil {
 					log.Println(err)
 				}
@@ -89,7 +138,59 @@ func doCommand(topCommand string, option []string) (result bool, err error) {
 	return
 }
 
-func searchFlag(s []string) (s2 []string, i int) {
+func doCommandForRedirect(topCommand string, option []string) (result bool, st string, err error) {
+	attr := syscall.ProcAttr{Files: []uintptr{0, 1, 2}}
+	cpath, err := exec.LookPath(topCommand)
+	if err != nil {
+		return
+	}
+	pid, err := syscall.ForkExec(cpath, option, &attr)
+	if err != nil {
+		return
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return
+	}
+	status, err := proc.Wait()
+	if err != nil {
+		return
+	}
+	if !status.Success() {
+		fmt.Println(status.String())
+	}
+	result = status.Success()
+	st = status.String()
+	return
+}
+
+func doCommandForOppRedirect(topCommand string, option []string) (result bool, st string, err error) {
+	attr := syscall.ProcAttr{Files: []uintptr{0, 1, 2}}
+	cpath, err := exec.LookPath(topCommand)
+	if err != nil {
+		return
+	}
+	pid, err := syscall.ForkExec(cpath, option, &attr)
+	if err != nil {
+		return
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return
+	}
+	status, err := proc.Wait()
+	if err != nil {
+		return
+	}
+	if !status.Success() {
+		fmt.Println(status.String())
+	}
+	result = status.Success()
+	st = status.String()
+	return
+}
+
+func searchFlag(s []string, flag string) (s2 []string, i int) {
 	for _, a := range s {
 		if a == flag {
 			break
@@ -115,12 +216,37 @@ func searchBit(s []string, count int) (s2 []string, i int) {
 	return
 }
 
-func checkFlag(s []string) (b bool) {
+func checkFlag(s []string, flag string) (b bool) {
 	b = false
 	for _, a := range s {
 		if a == flag {
 			b = true
 			break
+		}
+	}
+	return
+}
+
+func splitFlag(s []string, flag string) (b []string, c []string) {
+	splitFlag := false
+	for _, a := range s {
+		if a == flag {
+			splitFlag = true
+		} else if splitFlag == false {
+			b = append(b, a)
+		} else if splitFlag == true {
+			c = append(c, a)
+		}
+	}
+	return
+}
+
+func connectOption(s []string) (sentence string) {
+	for i, a := range s {
+		if i == 0 {
+			sentence = a
+		} else {
+			sentence = sentence + " " + a
 		}
 	}
 	return
