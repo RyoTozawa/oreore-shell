@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
+	//"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -58,6 +58,7 @@ func main() {
 			// > のリダイレクトがあった場合
 		} else if checkFlag(arr, redirectFlag) {
 			args1, args2 := splitFlag(arr, redirectFlag)
+			// オプションを文字列結合
 			args1Option := connectOption(args1[1:])
 			// 標準入力の取得
 			out, err := exec.Command(args1[0], args1Option).Output()
@@ -72,35 +73,13 @@ func main() {
 			defer fw.Close()
 			// 書き込み
 			fmt.Fprintln(fw, string(out))
+			// < のリダイレクトがあった場合(ごめんなさいお手上げです。)
 		} else if checkFlag(arr, redirectOppFlag) {
-			s, flagPoint := searchFlag(arr, redirectOppFlag)
-			args1 := s
-			args2 := args1[flagPoint+1:]
-			b, err := ioutil.ReadFile(args2[0])
+			out, err := exec.Command("sh", "-c", text).Output()
 			if err != nil {
 				log.Println(err)
 			}
-			status := string(b)
-			result, status, err := doCommandForRedirect(args1[0], args1)
-			if err != nil {
-				log.Println(err)
-			}
-			// 書き込みできるようファイルを用意
-			if result {
-				fw, err := os.OpenFile(args2[0], os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-				if err != nil {
-					log.Println(err)
-				}
-				defer func() {
-					if err := fw.Close(); err != nil {
-						log.Println(err)
-					}
-				}()
-				_, err = fw.WriteString(status)
-				if err != nil {
-					log.Println(err)
-				}
-			}
+			fmt.Printf(string(out))
 		} else {
 			args := arr[0:]
 			_, err := doCommand(args[0], args)
