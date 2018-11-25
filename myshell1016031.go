@@ -85,8 +85,14 @@ func main() {
 		} else if checkFlag(arr, pipeFlag) {
 			splitText := splitText(text, pipeFlag)
 			cmd := exec.Command("sh", "-c", splitText[1])
-			stdin, _ := cmd.StdinPipe()
+			stdin, err := cmd.StdinPipe()
+			if err != nil {
+				log.Println(err)
+			}
 			out, err := exec.Command("sh", "-c", splitText[0]).Output()
+			if err != nil {
+				log.Println(err)
+			}
 			io.WriteString(stdin, string(out))
 			stdin.Close()
 			out, err = cmd.Output()
