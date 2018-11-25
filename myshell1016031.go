@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	//"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -14,6 +15,7 @@ import (
 const ternaryFlag = "?"
 const redirectFlag = ">"
 const redirectOppFlag = "<"
+const pipeFlag = "|"
 const bit = ":"
 
 func main() {
@@ -76,6 +78,18 @@ func main() {
 			// < のリダイレクトがあった場合(ごめんなさいお手上げです。)
 		} else if checkFlag(arr, redirectOppFlag) {
 			out, err := exec.Command("sh", "-c", text).Output()
+			if err != nil {
+				log.Println(err)
+			}
+			fmt.Printf(string(out))
+		} else if checkFlag(arr, pipeFlag) {
+			splitText := splitText(text, pipeFlag)
+			cmd := exec.Command("sh", "-c", splitText[1])
+			stdin, _ := cmd.StdinPipe()
+			out, err := exec.Command("sh", "-c", splitText[0]).Output()
+			io.WriteString(stdin, string(out))
+			stdin.Close()
+			out, err = cmd.Output()
 			if err != nil {
 				log.Println(err)
 			}
@@ -228,5 +242,10 @@ func connectOption(s []string) (sentence string) {
 			sentence = sentence + " " + a
 		}
 	}
+	return
+}
+
+func splitText(s string, f string) (sentence []string) {
+	sentence = strings.Split(s, f)
 	return
 }
