@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
-	//"io/ioutil"
 	"io"
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
 	"syscall"
 )
@@ -22,7 +22,17 @@ func main() {
 	stdin := bufio.NewScanner(os.Stdin)
 	count := 0
 	fmt.Printf("./myshell[00]> ")
+	// chanからの通知を受けるgoroutineを起動
 	// Loop Scan
+	c := make(chan os.Signal, 1)
+	// それを登録
+	signal.Notify(c, os.Interrupt)
+	// chanからの通知を受けるgoroutineを起動
+	go func() {
+		for _ = range c {
+			fmt.Println(" (SIGINT caught!)")
+		}
+	}()
 	for stdin.Scan() {
 		text := stdin.Text()
 		arr := strings.Split(text, " ")
